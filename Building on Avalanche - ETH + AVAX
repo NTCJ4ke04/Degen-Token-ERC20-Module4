@@ -1,5 +1,3 @@
-# Degen-Token-ERC20-Module4
-
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -8,11 +6,13 @@ import "./ownable.sol";
 
 contract DegenToken is ERC20, Ownable {
     mapping(uint256 => uint256) public Gun;
+    mapping(address => mapping(uint256 => bool)) public redeemedGuns;
 
     event GunRedeemed(address indexed player, uint256 indexed GunId, uint256 amount);
+    event GunClaimed(address indexed player, uint256 indexed GunId);
 
     constructor(uint256 initialSupply) ERC20("Degen", "DGN") {
-        _mint(msg.sender, initialSupply * 10 ** 0);
+        _mint(msg.sender, initialSupply * 10 ** decimals());
         Gun[45] = 6000;   // Gun 1: Glock 45 - Price: 6000 Coins
         Gun[47] = 8000;   // Gun 2: Ak-47 - Price: 8000 Coins
         Gun[16] = 10000;  // Gun 3: M16 - Price: 10000 Coins
@@ -32,12 +32,30 @@ contract DegenToken is ERC20, Ownable {
     }
 
     function redeemGun(uint256 Id) public {
+        uint256 price = Gun[Id];
         // Ensure item price is set and player has enough balance
-        require(Gun[Id] > 0, "Item price not set");
-        require(balanceOf(msg.sender) >= Gun[Id], "Insufficient balance");
+        require(price > 0, "Item price not set");
+        require(balanceOf(msg.sender) >= price, "Insufficient balance");
 
         // Transfer tokens from player to owner (in-game store)
-        _transfer(msg.sender, jakeOwner, Gun[Id]);
-        emit GunRedeemed(msg.sender, Id, Gun[Id]);
+        _transfer(msg.sender, owner, price);
+
+        // Mark the gun as redeemed
+        redeemedGuns[msg.sender][Id] = true;
+        
+        emit GunRedeemed(msg.sender, Id, price);
+    }
+
+    function claimGun(uint256 Id) public {
+        // Ensure the gun has been redeemed by the player
+        require(redeemedGuns[msg.sender][Id], "Gun not redeemed");
+
+        // Mark the gun as claimed
+        redeemedGuns[msg.sender][Id] = false;
+        
+        // Logic to provide the actual gun to the player should be implemented here
+        // For example, interacting with an NFT contract or in-game inventory system
+
+        emit GunClaimed(msg.sender, Id);
     }
 }
